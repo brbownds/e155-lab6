@@ -24,7 +24,7 @@ char* ledStr =
 <form action=\"ledon\"><input type=\"submit\" value=\"Turn LED On!\"></form>\
 <form action=\"ledoff\"><input type=\"submit\" value=\"Turn LED Off!\"></form>";
 
-char* tempForm =
+char* tempStr =
 "<p>Temperature Resolution:</p>\
 <form action=\"precision8\"><input type=\"submit\" value=\"8-bit\"></form>\
 <form action=\"precision9\"><input type=\"submit\" value=\"9-bit\"></form>\
@@ -36,37 +36,43 @@ char* webpageEnd = "</body></html>";
 
 // Checks if a substring exists inside a string
 int inString(char request[], char des[]) {
-	if (strstr(request, des) != NULL) return 1;
-	return -1;
+    if (strstr(request, des) != NULL) {return 1;}
+    return -1;
 }
 
-// Handles LED on/off requests
-int updateLEDStatus(char request[]) {
-	int led_status = 0;
+int led_status = 0;
 
-	if (inString(request, "ledoff") == 1) {
-		digitalWrite(LED_PIN, PIO_LOW);
-		led_status = 0;
-	} 
-	else if (inString(request, "ledon") == 1) {
-		digitalWrite(LED_PIN, PIO_HIGH);
-		led_status = 1;
-	}
-
-	return led_status;
+// updateLEDStatus controls the LED based on the request
+int updateLEDStatus(char request[])
+{
+    // The request has been received. now process to determine whether to turn the LED on or off
+    if (inString(request, "ledoff")==1) {
+        digitalWrite(LED_PIN, PIO_LOW);
+        led_status = 0;
+        return led_status;    // Ensures LED status is accurate when bit resolution is selected
+    }
+    else if (inString(request, "ledon")==1) {
+        digitalWrite(LED_PIN, PIO_HIGH);
+        led_status = 1;
+        return led_status;
+    }
+    return led_status;
 }
+
+
+
 
 // Handles DS1722 precision requests
 void newprecision(char request[]) {
 	int precision = 9;
 
-	if (inString(request, "precision8") == 1) precision = 8;
+	if      (inString(request, "precision8") == 1) precision = 8;
 	else if (inString(request, "precision9") == 1) precision = 9;
 	else if (inString(request, "precision10") == 1) precision = 10;
 	else if (inString(request, "precision11") == 1) precision = 11;
 	else if (inString(request, "precision12") == 1) precision = 12;
 
-	setPrecision(precision);
+	setprecision(precision);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -87,7 +93,7 @@ int main(void) {
 
 	// Initialize SPI for DS1722: CPOL=0, CPHA=1
 	initSPI(0b111, 0, 1);
-	setPrecision(12); // Default: highest resolution
+	setprecision(12); // Default: highest resolution
 
 	USART_TypeDef *USART = initUSART(USART1_ID, 125000);
 	printf("E155 IoT SPI Temperature Server Initialized\n");
@@ -105,7 +111,7 @@ int main(void) {
 		// Process web request
 		int led_status = updateLEDStatus(request);
 		newprecision(request);
-		float temp = getTemp();
+		float temp = readTemp();
 
 		// Prepare status messages
 		char ledMsg[32];
@@ -113,12 +119,12 @@ int main(void) {
 		else sprintf(ledMsg, "LED is OFF");
 
 		char tempMsg[48];
-		sprintf(tempMsg, "Temperature: %.3f °C", temp);
+		sprintf(tempMsg, "Temperature: %.4f C", temp);
 
 		// Send the full webpage back
 		sendString(USART, webpageStart);
 		sendString(USART, ledStr);
-		sendString(USART, tempForm);
+		sendString(USART, tempStr);
 		sendString(USART, "<h2>Status</h2><p>");
 		sendString(USART, ledMsg);
 		sendString(USART, "<br>");
@@ -127,3 +133,4 @@ int main(void) {
 		sendString(USART, webpageEnd);
 	}
 }
+

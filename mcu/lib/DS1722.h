@@ -14,7 +14,7 @@
 
 
 // This gets and returns the current temperature
-float Temp();
+float readTemp();
 
 // Set the resolution of the temperature sensor (8-12 bits)
 void setprecision(int precision);

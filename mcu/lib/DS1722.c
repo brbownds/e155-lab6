@@ -16,47 +16,67 @@
 #define DS1722_WRITE_CONFIG    0x80
 
 
-float Temp(void)
-{
-    uint8_t lsb = 0, msb = 0;
+float readTemp(void) {
+   uint8_t LSB = 0;    // Least significant bit
+   uint8_t MSB = 0;    // Most significant bit
 
-    // Read LSB 
-    digitalWrite(SPI_CE, 1);
-    spiSendReceive(DS1722_READ_TEMP_LSB);
-    lsb = spiSendReceive(0x00);  // dummy byte to clock data out
-    digitalWrite(SPI_CE, 0);
 
-    // Read MSB 
-    digitalWrite(SPI_CE, 1);
-    spiSendReceive(DS1722_READ_TEMP_MSB);
-    msb = spiSendReceive(0x00);
-    digitalWrite(SPI_CE, 0);
+   // --- Read MSB (Address 0x02) ---
+   digitalWrite(SPI_CE, PIO_HIGH);    // Start SPI transaction
+   spiSendReceive(0x02);               // Send read command for MSB register
+   MSB = spiSendReceive(0x00);         // Read the MSB data (send dummy byte 0x00)
+   digitalWrite(SPI_CE, PIO_LOW);     // Pulse CE to end MSB read
 
-    // Combine bytes into signed 12-bit temperature (datasheet format)
-    float temp = (float)((int8_t)msb) + ((float)lsb / 256.0f);
-    return temp;
+
+   // --- Read LSB (Address 0x01) ---
+   digitalWrite(SPI_CE, PIO_HIGH);    // Start new SPI transaction
+   spiSendReceive(0x01);               // Send read command for LSB register
+   LSB = spiSendReceive(0x00);         // Read the LSB data (send dummy byte 0x00)
+   digitalWrite(SPI_CE, PIO_LOW);     // End SPI transaction
+
+
+   //  Concatenate bytes and calculate temperature
+  
+   // Combine the MSB and LSB into a single 16-bit word.
+   uint16_t rawTemp = ((uint16_t) MSB << 8) | LSB;
+
+   int16_t signedValue = (int16_t)rawTemp;
+    printf("MSB: %d, LSB: %d\n", MSB, LSB);
+   // The resolution is 1/256 ºC per LSB.
+   float temp = (double)signedValue / 256.0;
+
+
+   return temp;
 }
 
-// Sets DS1722 resolution (8–12 bits) by writing configuration register.
-// precision: valid options are 8, 9, 10, 11, or 12.
+
 void setprecision(int precision)
 {
-    uint8_t byte;
+    char byte;
 
-    switch (precision) {
-        case 8:  byte = 0xF0; break;
-        case 9:  byte = 0xF2; break;
-        case 10: byte = 0xF4; break;
-        case 11: byte = 0xF5; break;
-        case 12: byte = 0xF8; break;
-        default: byte = 0xF8; break;  // default to 12-bit
+    if (precision == 8) {
+        byte = 0xE0;  // 8-bit resolution, continuous conversion
+    } else if (precision == 9) {
+        byte = 0xE2;  // 9-bit resolution
+    } else if (precision == 10) {
+        byte = 0xE4;  // 10-bit resolution
+    } else if (precision == 11) {
+        byte = 0xE5;  // 11-bit resolution
+    } else {
+        byte = 0xE8;  // Default to 12-bit resolution
     }
 
-    digitalWrite(SPI_CE, 1);
-    spiSendReceive(DS1722_WRITE_CONFIG);
+    // Write config byte to DS1722
+    digitalWrite(SPI_CE, PIO_HIGH);
+    spiSendReceive(DS1722_WRITE_CONFIG);  // 0x80
     spiSendReceive(byte);
-    digitalWrite(SPI_CE, 0);
+    digitalWrite(SPI_CE, PIO_LOW);
 
-    // Small delay for configuration to latch (10–20 ms is plenty)
-    delay_millis(TIM15, 20);
+    // Allow time for conversion to begin
+    delay_millis(TIM15, 1000);
 }
+
+
+
+
+
