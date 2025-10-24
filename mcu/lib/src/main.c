@@ -98,6 +98,21 @@ int main(void) {
 	USART_TypeDef *USART = initUSART(USART1_ID, 125000);
 	printf("E155 IoT SPI Temperature Server Initialized\n");
 
+        /*while(1){
+        digitalWrite(SPI_CE, 1);
+        spiSendReceive(0x80);
+        spiSendReceive(0xE0);
+        digitalWrite(SPI_CE, 0);
+
+        digitalWrite(SPI_CE, 1);
+        spiSendReceive(0x00);
+        char test = spiSendReceive(0xE0);
+        digitalWrite(SPI_CE, 0);
+        printf("test = %X", test);
+        }
+        */
+
+
 	while (1) {
 		// Wait for ESP8266 request
 		char request[64] = " ";
@@ -133,4 +148,3 @@ int main(void) {
 		sendString(USART, webpageEnd);
 	}
 }
-

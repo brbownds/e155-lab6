@@ -25,13 +25,13 @@ void initSPI(int br, int cpol, int cpha) {
     pinMode(SPI_CE, GPIO_OUTPUT); //  Manual CS
 
     // Set output speed type to high for SCK
-    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED5);
+    GPIOB->OSPEEDR |= (GPIO_OSPEEDR_OSPEED3);
 
-    // Set AF5 for PA5, PA6, PA12 (SPI1)
-    GPIOA->AFR[0] |= (0b101 << GPIO_AFRL_AFSEL5_Pos);   // SCK
-    GPIOA->AFR[0] |= (0b101 << GPIO_AFRL_AFSEL6_Pos);   // MISO
-    GPIOA->AFR[1] |= (0b101 << GPIO_AFRH_AFSEL12_Pos);  // MOSI
-
+    // Set to AF05 for SPI alternate functions
+    GPIOB->AFR[0] |= _VAL2FLD(GPIO_AFRL_AFSEL3, 5);
+    GPIOB->AFR[0] |= _VAL2FLD(GPIO_AFRL_AFSEL4, 5);
+    GPIOB->AFR[0] |= _VAL2FLD(GPIO_AFRL_AFSEL5, 5);
+    
     SPI1->CR1 |= _VAL2FLD(SPI_CR1_BR, br); // Set baud rate divider
 
     SPI1->CR1 |= (SPI_CR1_MSTR);
@@ -47,12 +47,10 @@ void initSPI(int br, int cpol, int cpha) {
 /* Transmits a character (1 byte) over SPI and returns the received character.
  *    -- send: the character to send over SPI
  *    -- return: the character received over SPI */
-// adds a small safety delay so that BSY check guarantees the last clock edge
 char spiSendReceive(char send) {
-    while (!(SPI1->SR & SPI_SR_TXE));  // Wait TX ready
-    SPI1->DR = send;
-    while (!(SPI1->SR & SPI_SR_RXNE)); // Wait RX ready
-    char rec = (char)SPI1->DR;
-    while (SPI1->SR & SPI_SR_BSY);     // Wait not busy
-    return rec;
+    while(!(SPI1->SR & SPI_SR_TXE)); // Wait until the transmit buffer is empty
+    *(volatile char *) (&SPI1->DR) = send; // Transmit the character over SPI
+    while(!(SPI1->SR & SPI_SR_RXNE)); // Wait until data has been received
+    char rec = (volatile char) SPI1->DR;
+    return rec; // Return received character
 }
