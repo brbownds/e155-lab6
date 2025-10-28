@@ -54,3 +54,5 @@ char spiSendReceive(char send) {
     char rec = (volatile char) SPI1->DR;
     return rec; // Return received character
 }
+
+

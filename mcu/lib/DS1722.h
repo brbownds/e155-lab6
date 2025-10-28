@@ -19,4 +19,7 @@ float readTemp();
 // Set the resolution of the temperature sensor (8-12 bits)
 void setprecision(int precision);
 
+extern int precisiondefault;
+
+
 #endif

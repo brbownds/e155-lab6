@@ -12,6 +12,7 @@
 #include "STM32L432KC_GPIO.h"
 #include "STM32L432KC_TIM.h"
 
+int precisiondefault = 12;
 
 // Command constants (per DS1722 datasheet)
 #define DS1722_WRITE_CONFIG   0x80
@@ -23,9 +24,12 @@
 // Sets the DS1722 temperature resolution (8–12 bits)
 // Writes configuration byte over SPI
 
+
 void setprecision(int precision)
 {
    char config; // default continuous conversion mode
+  
+  precisiondefault = precision;
 
    if (precision == 8)   config = 0xE0;
    else if (precision == 9)  config = 0xE2;
@@ -60,7 +64,7 @@ float readTemp(void)
     spiSendReceive(0x02);
     msb = spiSendReceive(0x00);
     digitalWrite(SPI_CE, 0);
-
+    
     // Read LSB
     digitalWrite(SPI_CE, 1);
     spiSendReceive(0x01);
@@ -75,9 +79,7 @@ float readTemp(void)
     float temp;
         temp = (double)signraw/256.0;  // negative temps
 
-    printf("MSB= 0x%02X LSB=0x%02X temp = %.4f C\n", msb, lsb, temp);
+    printf("MSB= 0x%02X LSB=0x%02X temp = %.4f C" "(Resolution =%d-bit)\n", msb, lsb, temp, precisiondefault);
     return temp;
 }
-
-
 

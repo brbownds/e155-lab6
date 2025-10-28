@@ -13,6 +13,7 @@
 #include "STM32L432KC_TIM.h"
 #include "DS1722.h"
 
+
 // HTML content
 char* webpageStart =
 "<!DOCTYPE html><html><head><title>E155 Web Server</title>\
@@ -95,6 +96,7 @@ int main(void) {
 	initSPI(0b111, 0, 1);
 	setprecision(12); // Default: highest resolution
 
+
 	USART_TypeDef *USART = initUSART(USART1_ID, 125000);
 	printf("E155 IoT SPI Temperature Server Initialized\n");
 
@@ -126,6 +128,13 @@ int main(void) {
 		// Process web request
 		int led_status = updateLEDStatus(request);
 		newprecision(request);
+
+                /*
+                 uint8_t msb = 0xFF;
+                 uint8_t lsb = 0x80;
+                 int16_t raw = ((int16_t)msb << 8) | lsb;
+                 float temp = (float)raw/ 256.0f;
+                 */
 		float temp = readTemp();
 
 		// Prepare status messages
@@ -134,7 +143,7 @@ int main(void) {
 		else sprintf(ledMsg, "LED is OFF");
 
 		char tempMsg[48];
-		sprintf(tempMsg, "Temperature: %.4f C", temp);
+		sprintf(tempMsg, "Temperature: %.4f C " " (Resolution: %d bit)", temp, precisiondefault);
 
 		// Send the full webpage back
 		sendString(USART, webpageStart);
@@ -148,3 +157,4 @@ int main(void) {
 		sendString(USART, webpageEnd);
 	}
 }
+
