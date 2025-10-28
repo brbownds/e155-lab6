@@ -2,8 +2,10 @@
 // Broderick Bownds (rewritten using Quinn Miyamoto's tactics)
 // brbownds@hmc.edu
 // 10/22/2025
-// Source code for DS1722 temperature sensor via SPI1
 
+// The DS1722 operates with an *active-high* chip Enable (CE) and supports
+// programmable temperature resolutions (8–12 bits). This driver implements both
+// configuration (setprecision) and data acquisition (readTemp) routines.
 
 #include "DS1722.h"
 #include <stdint.h>
@@ -12,18 +14,19 @@
 #include "STM32L432KC_GPIO.h"
 #include "STM32L432KC_TIM.h"
 
-int precisiondefault = 12;
+
 
 // Command constants (per DS1722 datasheet)
 #define DS1722_WRITE_CONFIG   0x80
 #define DS1722_READ_TEMP_LSB  0x01
 #define DS1722_READ_TEMP_MSB  0x02
 
+// set precision
+// Writes to the DS1722 configuration register (0x80) to select the
+// temperature resolution and continuous conversion mode.
+// Valid precision values: 8, 9, 10, 11, 12 bits.
 
-// Function: setprecision
-// Sets the DS1722 temperature resolution (8–12 bits)
-// Writes configuration byte over SPI
-
+int precisiondefault = 12;
 
 void setprecision(int precision)
 {
@@ -51,9 +54,12 @@ void setprecision(int precision)
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Function: Temp
-// Reads the current temperature from the DS1722 and converts to degrees
+// readTemp(void)
+// Reads the MSB (0x02) and LSB (0x01) temperature registers, combines
+// them into a signed 16-bit value, and converts to degrees Celsius using
+// two’s complement scaling (1 LSB = 1/256°C at 12-bit precision).
 ///////////////////////////////////////////////////////////////////////////////
+
 float readTemp(void)
 {
     uint8_t msb = 0;
